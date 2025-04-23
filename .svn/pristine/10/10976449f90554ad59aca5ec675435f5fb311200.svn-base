@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: gd:retalix-cardRequest:080531">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/gd/retalix-cardRequest/080531/retalix-cardRequest-080531.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/gd/retalix-cardRequest/080531/retalix-cardRequest-080531-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/gd/retalix-cardRequest/080531/retalix-cardRequest-080531-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

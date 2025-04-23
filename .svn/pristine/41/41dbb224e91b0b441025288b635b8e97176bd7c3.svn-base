@@ -1,0 +1,250 @@
+package com.easy.iso8583;
+
+
+import com.gd.magic.util.StringUtil;
+import org.apache.log4j.Logger;
+
+import java.nio.charset.StandardCharsets;
+
+/**
+ * @author dy_gu king.gu@gmail.com
+ * @version V1.0
+ * @date 2021/5/12 上午10:41
+ * @Copyright: 2021 wepay.mpay.cn Inc. All rights reserved.
+ */
+//    Field 1  Header Length 1
+//    Field 2  Header Flag and Version  1
+//    Field 3  Total Message Length 4
+//    Field 4  Destination ID 11
+//    Field 5  Source ID 11
+//    Field 6  Reserved for Use 3
+//    Field 7  Batch Number 1
+//    Field 8  Transaction Information 8
+//    Field 9  User Information 1
+//    Field 10 Reject Code 5
+//00015= invalid value     头长度错误 非 0x2e
+//00025=invalid value  版本错误   bit  1  （0 生产  1 测试）  剩下7bit 标示版本  from 000 0001 to 000 0010.
+//00035=invalid value   >46  <46+1892  报文长度错误
+//00045=invalid value   destinationId error
+//00055=invalid value  source error
+public class MsgHead {
+    final public static int HEAD_LEN = 0x2E;
+    static Logger logger = Logger.getLogger(MsgHead.class);
+
+
+    byte[] head = new byte[HEAD_LEN];
+
+
+    byte headLen = 0x2E;
+    byte headVersion = (byte) 0x82;
+
+    //整改报文长度 包括头 4 个字节number
+    int msgLen;
+    //国内会员  为 000010000
+    //国外会员  为 000010344
+    String destinationId;
+
+    String source;
+    //    String reserved;
+    byte batchNumber;
+    String transactionInfo;
+    byte userInfo;
+    String rejectCode;
+
+
+    public MsgHead(byte[] head) {
+        parse(head);
+    }
+
+    private void parse(byte[] head) {
+        //head length
+        int pos = 0;
+        assert head[pos] == HEAD_LEN : "报文头长度异常";
+        pos += 1;
+
+        // version
+        headVersion = head[pos];
+        pos += 1;
+
+        //msg length
+        msgLen = Integer.parseInt(new String(head, pos, 4));
+        pos += 4;
+
+
+        //destinationId
+        destinationId = new String(head, pos, 11).trim();
+        pos += 11;
+
+        //source
+        source = new String(head, pos, 11).trim();
+        pos += 11;
+
+        //reserve  00 00 00
+        pos += 3;
+
+        //batchNumber
+        batchNumber = head[pos];
+        pos += 1;
+
+        //transactionInfo
+        transactionInfo = new String(head, pos, 8).trim();
+        pos += 8;
+
+        //user info
+        userInfo = head[pos];
+        pos += 1;
+
+        // rejectCode
+        rejectCode = new String(head, pos, 5).trim();
+    }
+
+    public byte[] toResponseByteArray(int length) {
+        StringBuilder stringBuilder = new StringBuilder("\n----------------Message Head----------------").append('\n');
+
+        //head length
+        int pos = 0;
+        head[pos] = HEAD_LEN;
+        stringBuilder.append("Header Length").append("\t= [").append("82").append("]").append('\n');
+        pos += 1;
+
+        // version
+        head[pos] = headVersion;
+        stringBuilder.append("Header Flag and Version").append("\t= [").append(headVersion).append("]").append('\n');
+        pos += 1;
+
+        //msg length
+        String strLen = StringUtil.lengthFix(String.valueOf(length + headLen), 4, '0', false);
+        System.arraycopy(strLen.getBytes(StandardCharsets.US_ASCII), 0, head, pos, 4);
+        stringBuilder.append("Total Message Length").append("\t= [").append(length + headLen).append(" " + length).append("]").append('\n');
+        pos += 4;
+
+        String tmp = "";
+
+//        返回时目的 和 resource 互换
+
+        //source
+        tmp = StringUtil.lengthFix(source, 11, ' ', true);
+        System.arraycopy(tmp.getBytes(StandardCharsets.UTF_8), 0, head, pos, 11);
+        stringBuilder.append("Destination ID").append("\t= [").append(source).append("]").append('\n');
+        pos += 11;
+
+
+        //destinationId
+        tmp = StringUtil.lengthFix(destinationId, 11, ' ', true);
+        System.arraycopy(tmp.getBytes(StandardCharsets.US_ASCII), 0, head, pos, 11);
+        stringBuilder.append("Source ID").append("\t= [").append(destinationId).append("]").append('\n');
+        pos += 11;
+
+
+        //reserve  00 00 00
+        stringBuilder.append("Reserved for Use").append("\t= [").append("000000").append("]").append('\n');
+        pos += 3;
+
+        //batchNumber
+        head[pos] = batchNumber;
+        stringBuilder.append("Batch Number").append("\t= [").append(batchNumber).append("]").append('\n');
+        pos += 1;
+
+        //transactionInfo
+        tmp = StringUtil.lengthFix(transactionInfo, 11, ' ', true);
+        System.arraycopy(tmp.getBytes(StandardCharsets.US_ASCII), 0, head, pos, 8);
+        stringBuilder.append("Transaction Information").append("\t= [").append(transactionInfo).append("]").append('\n');
+        pos += 8;
+
+        //user info
+        head[pos] = userInfo;
+        stringBuilder.append("User Information").append("\t= [").append(userInfo).append("]").append('\n');
+        pos += 1;
+
+        // rejectCode  Members cannot generate but may receive the Reject Code field with non-all-zero.
+
+        System.arraycopy("00000".getBytes(StandardCharsets.US_ASCII), 0, head, pos, 5);
+        stringBuilder.append("Reject Code").append("\t= [").append("00000").append("]").append('\n');
+        stringBuilder.append("--------------------------------------------\n");
+        logger.debug(stringBuilder.toString());
+        return head;
+    }
+
+    public byte[] toByteArray() {
+
+        //head length
+        int pos = 0;
+        head[pos] = headLen;
+        pos += 1;
+
+        // version
+        head[pos] = headVersion;
+        pos += 1;
+
+        //msg length
+        String strLen = StringUtil.lengthFix(String.valueOf(msgLen), 4, '0', false);
+        System.arraycopy(strLen.getBytes(StandardCharsets.US_ASCII), 0, head, pos, 4);
+        pos += 4;
+
+
+        //destinationId
+        String tmp = StringUtil.lengthFix(destinationId, 11, ' ', true);
+        System.arraycopy(tmp.getBytes(StandardCharsets.US_ASCII), 0, head, pos, 11);
+        pos += 11;
+
+        //source
+        tmp = StringUtil.lengthFix(source, 11, ' ', true);
+        System.arraycopy(tmp.getBytes(StandardCharsets.UTF_8), 0, head, pos, 11);
+        pos += 11;
+
+        //reserve  00 00 00
+        pos += 3;
+
+        //batchNumber
+        head[pos] = batchNumber;
+        pos += 1;
+
+        //transactionInfo
+        tmp = StringUtil.lengthFix(transactionInfo, 11, ' ', true);
+        System.arraycopy(tmp.getBytes(StandardCharsets.US_ASCII), 0, head, pos, 8);
+        pos += 8;
+
+        //user info
+        head[pos] = userInfo;
+        pos += 1;
+
+        // rejectCode  Members cannot generate but may receive the Reject Code field with non-all-zero.
+
+        System.arraycopy(rejectCode.getBytes(StandardCharsets.US_ASCII), 0, head, pos, 5);
+        return head;
+    }
+
+
+    public byte getHeadVersion() {
+        return headVersion;
+    }
+
+    public int getMsgLen() {
+        return msgLen;
+    }
+
+    public String getDestinationId() {
+        return destinationId;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public byte getBatchNumber() {
+        return batchNumber;
+    }
+
+    public String getTransactionInfo() {
+        return transactionInfo;
+    }
+
+    public byte getUserInfo() {
+        return userInfo;
+    }
+
+    public String getRejectCode() {
+        return rejectCode;
+    }
+
+}
