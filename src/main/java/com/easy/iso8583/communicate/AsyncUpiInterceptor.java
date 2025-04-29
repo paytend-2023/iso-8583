@@ -135,7 +135,7 @@ public class AsyncUpiInterceptor extends RemoteInterceptor {
     private void resetConn() {
         this.hasInit = false;
         int count = retryCount.incrementAndGet();
-        logger.warn("resetConn begin " + count + " count，presen socketConnect: " + this.socketConnect);
+        logger.warn("resetConn begin " + count + " count , presen socketConnect: " + this.socketConnect);
         if (this.socketConnect != null) {
             this.socketConnect.setInvalid(true);
             try {
